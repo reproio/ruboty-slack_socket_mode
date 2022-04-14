@@ -8,7 +8,8 @@ require 'faraday'
 module Ruboty
   module Adapters
     class SlackSocketMode < Base
-      env :SLACK_TOKEN, "Account's token. get one on https://api.slack.com/web#basics"
+      env :SLACK_APP_TOKEN, "SlackApp App-Level token for SocketMode."
+      env :SLACK_BOT_TOKEN, "SlackApp token for Web API."
       env :SLACK_EXPOSE_CHANNEL_NAME, "if this set to 1, message.to will be channel name instead of id", optional: true
       env :SLACK_IGNORE_BOT_MESSAGE, "If this set to 1, bot ignores bot_messages", optional: true
       env :SLACK_IGNORE_GENERAL, "if this set to 1, bot ignores all messages on #general channel", optional: true
@@ -85,9 +86,12 @@ module Ruboty
       end
 
       def bind
-        realtime.on_text do |data|
-          method_name = "on_#{data['type']}".to_sym
-          send(method_name, data) if respond_to?(method_name, true)
+        socket.on_text do |data|
+          next if data['type'] != 'events_api'
+
+          event = data['payload']['event']
+          method_name = "on_#{event['type']}".to_sym
+          send(method_name, event) if respond_to?(method_name, true)
         end
       end
 
@@ -95,15 +99,14 @@ module Ruboty
         Thread.start do
           loop do
             sleep 5
-            set_active
           end
         end
 
         loop do
-          realtime.main_loop rescue nil
+          socket.main_loop rescue nil
           break unless ENV['SLACK_AUTO_RECONNECT']
           @url = nil
-          @realtime = nil
+          @socket = nil
           sleep 3
           bind
         end
@@ -111,19 +114,23 @@ module Ruboty
 
       def url
         @url ||= begin
-          response = Net::HTTP.post_form(URI.parse('https://slack.com/api/rtm.connect'), token: ENV['SLACK_TOKEN'])
+          response = Net::HTTP.post(
+            URI.parse('https://slack.com/api/apps.connections.open'), '',
+            { 'Authorization' => "Bearer #{ENV['SLACK_APP_TOKEN']}" }
+          )
           body = JSON.parse(response.body)
+          raise response.body unless body['ok']
 
           URI.parse(body['url'])
         end
       end
 
       def client
-        @client ||= ::Slack::Client.new(token: ENV['SLACK_TOKEN'])
+        @client ||= ::Slack::Web::Client.new(token: ENV['SLACK_BOT_TOKEN'])
       end
 
-      def realtime
-        @realtime ||= ::Ruboty::SlackSocketMode::Client.new(websocket_url: url)
+      def socket
+        @socket ||= ::Ruboty::SlackSocketMode::Client.new(websocket_url: url)
       end
 
       def expose_channel_name?
@@ -132,10 +139,6 @@ module Ruboty
         else
           @expose_channel_name
         end
-      end
-
-      def set_active
-        client.users_setActive
       end
 
       # event handlers
@@ -179,6 +182,7 @@ module Ruboty
           end
         end
       end
+      alias_method :on_app_mention, :on_message
 
       def on_channel_change(data)
         make_channels_cache
@@ -302,7 +306,7 @@ module Ruboty
       end
 
       def make_channels_cache
-        resp = client.channels_list
+        resp = client.conversations_list
         if resp['ok']
           resp['channels'].each do |channel|
             @channel_info_caches[channel['id']] = channel

@@ -25,7 +25,12 @@ module Ruboty
           when :pong
             Ruboty.logger.debug("#{Client.name}: Received pong message")
           when :text
-            block.call(JSON.parse(message.data))
+            data = JSON.parse(message.data)
+
+            # ACK response for SocketMode
+            # ref: https://api.slack.com/apis/connections/socket-implement#acknowledge
+            send({'envelope_id' => data['envelope_id']})
+            block.call(data)
           else
             Ruboty.logger.warn("#{Client.name}: Received unknown message type=#{message.type}: #{message.data}")
           end
