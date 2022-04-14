@@ -2,7 +2,7 @@ require 'json'
 require 'websocket-client-simple'
 
 module Ruboty
-  module SlackRTM
+  module SlackSocketMode
     class Client
       CONNECTION_CLOSED = Object.new
 

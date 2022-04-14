@@ -1,0 +1,5 @@
+require 'ruboty/slack_socket_mode/version'
+require 'ruboty/slack_socket_mode/client'
+require 'ruboty/adapters/slack_socket_mode'
+require 'ruboty/slack_socket_mode/robot'
+require 'ruboty/slack_socket_mode/message'

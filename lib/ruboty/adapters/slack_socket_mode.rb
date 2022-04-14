@@ -7,7 +7,7 @@ require 'faraday'
 
 module Ruboty
   module Adapters
-    class SlackRTM < Base
+    class SlackSocketMode < Base
       env :SLACK_TOKEN, "Account's token. get one on https://api.slack.com/web#basics"
       env :SLACK_EXPOSE_CHANNEL_NAME, "if this set to 1, message.to will be channel name instead of id", optional: true
       env :SLACK_IGNORE_BOT_MESSAGE, "If this set to 1, bot ignores bot_messages", optional: true
@@ -123,7 +123,7 @@ module Ruboty
       end
 
       def realtime
-        @realtime ||= ::Ruboty::SlackRTM::Client.new(websocket_url: url)
+        @realtime ||= ::Ruboty::SlackSocketMode::Client.new(websocket_url: url)
       end
 
       def expose_channel_name?
