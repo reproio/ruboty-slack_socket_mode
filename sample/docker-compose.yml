@@ -1,0 +1,11 @@
+version: '3'
+services:
+  ruboty:
+    image: ruby:2
+    volumes:
+      - type: bind
+        source: '..'
+        target: '/ruboty'
+    working_dir: /ruboty/sample
+    env_file: .env
+    command: bash -c "bundle install && bundle exec ruboty"
