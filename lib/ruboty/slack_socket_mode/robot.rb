@@ -9,6 +9,10 @@ module Ruboty
         adapter.add_reaction(reaction, channel_id, timestamp)
         true
       end
+
+      def delete_ephemeral_message(response_url)
+        adapter.delete_ephemeral_message(response_url)
+      end
     end
   end
 

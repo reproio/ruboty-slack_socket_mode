@@ -8,6 +8,14 @@ module Ruboty
         timestamp  = @original[:time].to_f
         robot.add_reaction(reaction, channel_id, timestamp)
       end
+
+      def reply_ephemeral(body, options = {})
+        reply(body, options.merge(ephemeral: true))
+      end
+
+      def delete
+        robot.delete_ephemeral_message(@original[:data]["response_url"])
+      end
     end
   end
 
