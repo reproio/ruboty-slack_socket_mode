@@ -96,12 +96,6 @@ module Ruboty
       end
 
       def connect
-        Thread.start do
-          loop do
-            sleep 5
-          end
-        end
-
         loop do
           socket.main_loop rescue nil
           break unless ENV['SLACK_AUTO_RECONNECT']
@@ -142,8 +136,7 @@ module Ruboty
       end
 
       # event handlers
-
-      def on_message(data)
+      def on_app_mention(data)
         user = user_info(data['user']) || {}
 
         channel = channel_info(data['channel'])
@@ -182,7 +175,6 @@ module Ruboty
           end
         end
       end
-      alias_method :on_app_mention, :on_message
 
       def on_channel_change(data)
         make_channels_cache
