@@ -175,6 +175,9 @@ module Ruboty
           end
         end
       end
+      # alias for app mentions in direct message (It comes with `type: "message"`9
+      # ref: https://api.slack.com/events/app_mention
+      alias_method :on_message, :on_app_mention
 
       def on_channel_change(data)
         make_channels_cache
