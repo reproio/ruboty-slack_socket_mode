@@ -87,11 +87,24 @@ module Ruboty
 
       def bind
         socket.on_text do |data|
-          next if data['type'] != 'events_api'
-
-          event = data['payload']['event']
-          method_name = "on_#{event['type']}".to_sym
-          send(method_name, event) if respond_to?(method_name, true)
+          # We could not find whole event types in official document.
+          # This cases will cover all event types found in official sample data.
+          # ref: https://api.slack.com/apis/connections/socket-implement#events
+          case data['type']
+          when 'hello'
+            Ruboty.logger.info("#{self.class.name}: Socket Mode connection is established.")
+          when 'disconnect'
+            # Nothing to do
+            # auto reconnecting works if SLACK_AUTO_RECONNECT configured.
+          when 'events_api'
+            event = data['payload']['event']
+            method_name = "on_#{event['type']}".to_sym
+            send(method_name, event) if respond_to?(method_name, true)
+          when 'slash_commands'
+            # TODO: add event handling for Slash commands
+          when 'interactive'
+            # TODO: add event handling for Block Kit buttons
+          end
         end
       end
 
