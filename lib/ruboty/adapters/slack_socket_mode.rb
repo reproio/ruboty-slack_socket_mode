@@ -118,20 +118,27 @@ module Ruboty
             # auto reconnecting works if SLACK_AUTO_RECONNECT configured.
           when 'events_api'
             event = data.dig('payload', 'event')
+            handle_events_api(data['payload']['event'])
+
             method_name = :"on_#{event['type']}"
-            if respond_to?(method_name, true)
-              send(method_name, event)
-            else
-              Ruboty.logger.warn("#{self.class.name}: Received unsupported events_api type: '#{event['type']}'.")
-            end
+            send(method_name, event) if respond_to?(method_name, true)
           when 'slash_commands'
             # TODO: add event handling for Slash commands
           when 'interactive'
-            interactive(data['payload'])
+            handle_interactive(data['payload'])
           else
             Ruboty.logger.warn("#{self.class.name}: Received unsupported data type: '#{data['type']}'.")
           end
         end
+      end
+
+      def handle_events_api(data)
+        robot.receive_events_api(data['type'], data)
+      end
+
+      def handle_interactive(data)
+        # TODO: add event handling for Block Kit buttons
+        robot.receive_interactive(data['type'], data)
       end
 
       def connect
