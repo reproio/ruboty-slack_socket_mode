@@ -6,6 +6,15 @@ This gem is experimental.
 This is fork of [rosylilly/ruboty-slack_rtm](https://github.com/rosylilly/ruboty-slack_rtm),
 adapted new slack API(Socket Mode) instead of old API(RTM).
 
+## ENV
+
+- `SLACK_APP_TOKEN`: Slack App-Level token for Socket Mode. get one on https://api.slack.com/apis/connections/socket#token
+- `SLACK_BOT_TOKEN`: Slack OAuth token for using Web API. get one on https://api.slack.com/web#basics
+- `SLACK_EXPOSE_CHANNEL_NAME`: if this set to 1, `message.to` will be channel name instead of id (optional)
+- `SLACK_IGNORE_GENERAL`: if this set to 1, bot ignores all messages on #general channel (optional)
+- `SLACK_GENERAL_NAME`: Set general channel name if your Slack changes general name (optional)
+- `SLACK_AUTO_RECONNECT`: Enable auto reconnect if websocket disconnected by Slack (optional)
+
 ## Development
 
 To install this gem onto your local machine, run `bundle exec rake install`.
@@ -16,7 +25,7 @@ You will need a slack workspace and slack app tokens. you can use `sample/slack_
 
 ```sh
 cd sample
-cp .env.sample .env # and fill your slack_app tokens
+cp sample.env .env # and fill your slack_app tokens
 
 docker compose run --rm ruboty
 ```

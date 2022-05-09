@@ -1,7 +1,7 @@
 version: '3'
 services:
   ruboty:
-    image: ruby:2
+    image: ruby:3
     volumes:
       - type: bind
         source: '..'
