@@ -121,7 +121,6 @@ module Ruboty
 
           @url = nil
           @socket = nil
-          sleep 3
           bind
         end
       end
