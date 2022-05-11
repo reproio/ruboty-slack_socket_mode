@@ -2,8 +2,10 @@ require 'cgi'
 require 'time'
 require 'json'
 require 'slack'
-require 'ruboty/adapters/base'
 require 'faraday'
+
+require 'ruboty/adapters/base'
+require 'ruboty/slack_socket_mode/interactive_message'
 
 module Ruboty
   module Adapters
@@ -137,8 +139,8 @@ module Ruboty
       end
 
       def handle_interactive(data)
-        # TODO: add event handling for Block Kit buttons
-        robot.receive_interactive(data['type'], data)
+        interactive_message = Ruboty::SlackSocketMode::InteractiveMessage.new(robot, data)
+        robot.receive_interactive(interactive_message)
       end
 
       def connect

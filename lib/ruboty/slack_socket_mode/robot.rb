@@ -23,10 +23,10 @@ module Ruboty
         end
       end
 
-      def receive_interactive(action_id, data)
+      def receive_interactive(interactive_message)
         interactive_handlers.each do |handler|
           handler.class.actions.each do |action|
-            handler.send(action.method_name, data) if action.action_id == action_id
+            handler.send(action.method_name, interactive_message) if action.action_id == interactive_message.action_id
           end
         end
       end

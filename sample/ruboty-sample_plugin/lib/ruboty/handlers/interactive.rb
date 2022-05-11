@@ -1,14 +1,12 @@
 module Ruboty::SlackSocketMode::Handlers
   class Interactive < InteractiveHandler
-    on(
+    on_interactive(
       action_id: 'action_ephemeral_ok',
-      name: 'slack_interactive'
+      name: 'ephemeral_ok'
     )
 
-    def interactive(action, message)
-      if action == 'action_ephemeral_ok'
-        message.delete
-      end
+    def ephemeral_ok(message)
+      message.delete
     end
   end
 end
