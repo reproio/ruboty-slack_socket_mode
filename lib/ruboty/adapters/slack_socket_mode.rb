@@ -212,15 +212,15 @@ module Ruboty
         action = data['actions'].first
         message_info = {
           from: data['channel'],
-          from_name: data['user']['name'],
-          to: data['channel']['id'],
-          channel: data['channel']['id'],
+          from_name: data.dig('user', 'name'),
+          to: data.dig('channel', 'id'),
+          channel: data.dig('channel', 'id'),
           user: data['user'],
           url: data["response_url"],
           action_value: action['value'],
           ts: action['action_ts'],
           time: Time.at(action['action_ts'].to_f),
-          body: "#{ENV['RUBOTY_NAME']} slack_interactive::#{action['action_id']}",
+          body: "#{ruboty_name} slack_interactive::#{action['action_id']}",
           data: data,
         }
         robot.receive(message_info)
@@ -432,6 +432,10 @@ module Ruboty
 
       def slack_auto_reconnect
         ENV['SLACK_AUTO_RECONNECT']
+      end
+
+      def ruboty_name
+        ENV['RUBOTY_NAME']
       end
     end
   end
