@@ -1,7 +1,7 @@
 require 'ruboty/message'
 
 module Ruboty
-  module SlackRTM
+  module SlackSocketMode
     module Message
       def add_reaction(reaction)
         channel_id = @original[:channel]["id"]
@@ -11,5 +11,5 @@ module Ruboty
     end
   end
 
-  Message.include SlackRTM::Message
+  Message.include SlackSocketMode::Message
 end

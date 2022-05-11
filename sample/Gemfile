@@ -1,0 +1,5 @@
+source "https://rubygems.org"
+
+gem "ruboty"
+gem "ruboty-slack_socket_mode", :path => '..'
+gem "ruboty-sample_plugin", :path => 'ruboty-sample_plugin'

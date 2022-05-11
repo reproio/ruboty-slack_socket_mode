@@ -1,7 +1,7 @@
 require 'ruboty/robot'
 
 module Ruboty
-  module SlackRTM
+  module SlackSocketMode
     module Robot
       delegate :add_reaction, to: :adapter
 
@@ -12,5 +12,5 @@ module Ruboty
     end
   end
 
-  Robot.include SlackRTM::Robot
+  Robot.include SlackSocketMode::Robot
 end

@@ -7,8 +7,9 @@ require 'faraday'
 
 module Ruboty
   module Adapters
-    class SlackRTM < Base
-      env :SLACK_TOKEN, "Account's token. get one on https://api.slack.com/web#basics"
+    class SlackSocketMode < Base
+      env :SLACK_APP_TOKEN, "Slack App-Level token for Socket Mode."
+      env :SLACK_BOT_TOKEN, "Slack OAuth token for using Web API."
       env :SLACK_EXPOSE_CHANNEL_NAME, "if this set to 1, message.to will be channel name instead of id", optional: true
       env :SLACK_IGNORE_BOT_MESSAGE, "If this set to 1, bot ignores bot_messages", optional: true
       env :SLACK_IGNORE_GENERAL, "if this set to 1, bot ignores all messages on #general channel", optional: true
@@ -85,74 +86,78 @@ module Ruboty
       end
 
       def bind
-        realtime.on_text do |data|
-          method_name = "on_#{data['type']}".to_sym
-          send(method_name, data) if respond_to?(method_name, true)
+        socket.on_text do |data|
+          # We could not find whole event types in official document.
+          # This cases will cover all event types found in official sample data.
+          # ref: https://api.slack.com/apis/connections/socket-implement#events
+          case data['type']
+          when 'hello'
+            Ruboty.logger.info("#{self.class.name}: Socket Mode connection is established.")
+          when 'disconnect'
+            # Nothing to do
+            # auto reconnecting works if SLACK_AUTO_RECONNECT configured.
+          when 'events_api'
+            event = data.dig('payload', 'event')
+            method_name = :"on_#{event['type']}"
+            if respond_to?(method_name, true)
+              send(method_name, event)
+            else
+              Ruboty.logger.warn("#{self.class.name}: Received unsupported events_api type: '#{event['type']}'.")
+            end
+          when 'slash_commands'
+            # TODO: add event handling for Slash commands
+          when 'interactive'
+            # TODO: add event handling for Block Kit buttons
+          else
+            Ruboty.logger.warn("#{self.class.name}: Received unsupported data type: '#{data['type']}'.")
+          end
         end
       end
 
       def connect
-        Thread.start do
-          loop do
-            sleep 5
-            set_active
-          end
-        end
-
         loop do
-          realtime.main_loop rescue nil
-          break unless ENV['SLACK_AUTO_RECONNECT']
+          socket.main_loop rescue nil
+          break unless slack_auto_reconnect
+
           @url = nil
-          @realtime = nil
-          sleep 3
+          @socket = nil
           bind
         end
       end
 
       def url
         @url ||= begin
-          response = Net::HTTP.post_form(URI.parse('https://slack.com/api/rtm.connect'), token: ENV['SLACK_TOKEN'])
+          response = Net::HTTP.post(
+            URI.parse('https://slack.com/api/apps.connections.open'), '',
+            { 'Authorization' => "Bearer #{slack_app_token}" }
+          )
           body = JSON.parse(response.body)
+          raise response.body unless body['ok']
 
           URI.parse(body['url'])
         end
       end
 
       def client
-        @client ||= ::Slack::Client.new(token: ENV['SLACK_TOKEN'])
+        @client ||= ::Slack::Web::Client.new(token: slack_bot_token)
       end
 
-      def realtime
-        @realtime ||= ::Ruboty::SlackRTM::Client.new(websocket_url: url)
-      end
-
-      def expose_channel_name?
-        if @expose_channel_name.nil?
-          @expose_channel_name = ENV['SLACK_EXPOSE_CHANNEL_NAME'] == '1'
-        else
-          @expose_channel_name
-        end
-      end
-
-      def set_active
-        client.users_setActive
+      def socket
+        @socket ||= ::Ruboty::SlackSocketMode::Client.new(websocket_url: url)
       end
 
       # event handlers
-
-      def on_message(data)
+      def on_app_mention(data)
         user = user_info(data['user']) || {}
 
         channel = channel_info(data['channel'])
 
-        if (data['subtype'] == 'bot_message' || user['is_bot']) && ENV['SLACK_IGNORE_BOT_MESSAGE'] == '1'
-          return
-        end
+        return if (data['subtype'] == 'bot_message' || user['is_bot']) && slack_ignore_bot_message == '1'
 
         if channel
-          return if channel['name'] == (ENV['SLACK_GENERAL_NAME'] || 'general') && ENV['SLACK_IGNORE_GENERAL'] == '1'
+          return if channel['name'] == slack_general_name && slack_ignore_general == '1'
 
-          channel_to = expose_channel_name? ? "##{channel['name']}" : channel['id']
+          channel_to = slack_expose_channel_name ? "##{channel['name']}" : channel['id']
         else # direct message
           channel_to = data['channel']
         end
@@ -179,6 +184,9 @@ module Ruboty
           end
         end
       end
+      # alias for app mentions in direct message (It comes with `type: "message"`)
+      # ref: https://api.slack.com/events/app_mention
+      alias_method :on_message, :on_app_mention
 
       def on_channel_change(data)
         make_channels_cache
@@ -302,7 +310,7 @@ module Ruboty
       end
 
       def make_channels_cache
-        resp = client.channels_list
+        resp = client.conversations_list
         if resp['ok']
           resp['channels'].each do |channel|
             @channel_info_caches[channel['id']] = channel
@@ -358,6 +366,34 @@ module Ruboty
           make_usergroups_cache
           @usergroup_info_caches[usergroup_id]
         end
+      end
+
+      def slack_app_token
+        ENV['SLACK_APP_TOKEN']
+      end
+
+      def slack_bot_token
+        ENV['SLACK_BOT_TOKEN']
+      end
+
+      def slack_expose_channel_name
+        ENV['SLACK_EXPOSE_CHANNEL_NAME'] == '1'
+      end
+
+      def slack_ignore_bot_message
+        ENV['SLACK_IGNORE_BOT_MESSAGE']
+      end
+
+      def slack_ignore_general
+        ENV['SLACK_IGNORE_GENERAL']
+      end
+
+      def slack_general_name
+        ENV['SLACK_GENERAL_NAME'] || 'general'
+      end
+
+      def slack_auto_reconnect
+        ENV['SLACK_AUTO_RECONNECT']
       end
     end
   end
