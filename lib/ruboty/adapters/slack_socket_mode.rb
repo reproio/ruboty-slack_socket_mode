@@ -211,24 +211,6 @@ module Ruboty
       # ref: https://api.slack.com/events/app_mention
       alias_method :on_message, :on_app_mention
 
-      def interactive(data)
-        action = data['actions'].first
-        message_info = {
-          from: data['channel'],
-          from_name: data.dig('user', 'name'),
-          to: data.dig('channel', 'id'),
-          channel: data.dig('channel', 'id'),
-          user: data['user'],
-          url: data["response_url"],
-          action_value: action['value'],
-          ts: action['action_ts'],
-          time: Time.at(action['action_ts'].to_f),
-          body: "#{ruboty_name} slack_interactive::#{action['action_id']}",
-          data: data,
-        }
-        robot.receive(message_info)
-      end
-
       def on_channel_change(data)
         make_channels_cache
       end

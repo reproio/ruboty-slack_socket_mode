@@ -1,17 +1,20 @@
 module Ruboty::SlackSocketMode::Handlers
   class Interactive < InteractiveHandler
     on_interactive(
-      action_id: 'action_ephemeral_ok',
-      name: 'ephemeral_ok'
+      action_id: 'action_ephemeral_delete',
+      name: 'delete'
     )
     on_interactive(
-      action_id: 'increment',
-      name: 'ephemeral_ok'
+      action_id: 'action_ephemeral_more',
+      name: 'more'
     )
 
-    def ephemeral_ok(message)
+    def delete(message)
       message.delete
-      message.reply_ephemeral("Hello")
+    end
+
+    def more(message)
+      message.reply_ephemeral("Hello!")
     end
   end
 end

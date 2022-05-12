@@ -42,15 +42,22 @@ module Ruboty
           blocks: [
             {
               "type": "section",
-              "text": {
-                "type": "mrkdwn",
-                "text": "This is ephemeral message"
-              },
-              "accessory": {
-                "type": "button",
-                "text": { "type": "plain_text", "text": "OK" },
-                "action_id": "action_ephemeral_ok"
-              }
+              "text": { "type": "plain_text", "text": "This is ephemeral message" }
+            },
+            {
+              "type": "actions",
+              "elements": [
+                {
+                  "type": "button",
+                  "text": { "type": "plain_text", "text": "Delete" },
+                  "action_id": "action_ephemeral_delete"
+                },
+                {
+                  "type": "button",
+                  "text": { "type": "plain_text", "text": "More Message" },
+                  "action_id": "action_ephemeral_more"
+                }
+              ]
             }
           ]
         )
