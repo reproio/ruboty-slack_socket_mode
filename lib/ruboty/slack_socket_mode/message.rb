@@ -9,8 +9,12 @@ module Ruboty
         robot.add_reaction(reaction, channel_id, timestamp)
       end
 
+      def user_id
+        @original.dig(:user, "id")
+      end
+
       def reply_ephemeral(body, options = {})
-        reply(body, options.merge(ephemeral: true))
+        reply(body, options.merge(ephemeral: true, user_id: user_id))
       end
 
       def delete

@@ -26,12 +26,6 @@ module Ruboty
 
       def say(message)
         channel = message[:to]
-        if channel[0] == '#'
-          channel = resolve_channel_id(channel[1..-1])
-        end
-
-        return unless channel
-
         args = {
           as_user: true,
           channel: channel
@@ -72,7 +66,7 @@ module Ruboty
         end
 
         if message[:ephemeral]
-          args.merge!(user: message[:original][:user]['id'])
+          args.merge!(user: message[:user_id])
           client.chat_postEphemeral(args)
         else
           client.chat_postMessage(args)
