@@ -25,18 +25,7 @@ module Ruboty
       end
 
       def say(message)
-<<<<<<< HEAD
         channel = message[:to]
-=======
-        # channel = message[:to]
-        channel = message[:original][:to]
-        if channel[0] == '#'
-          channel = resolve_channel_id(channel[1..-1])
-        end
-
-        return unless channel
-
->>>>>>> fix channel_id get flow
         args = {
           as_user: true,
           channel: channel
@@ -90,6 +79,22 @@ module Ruboty
 
       def delete_interactive(response_url)
         params = { delete_original: "true" }
+        post_as_json(response_url, params)
+      end
+
+      def update_interactive_block(response_url, block)
+        params = {
+          replace_original: "true",
+          blocks: block,
+        }
+        post_as_json(response_url, params)
+      end
+
+      def update_interactive_message(response_url, text)
+        params = {
+          replace_original: "true",
+          text: text,
+        }
         post_as_json(response_url, params)
       end
 

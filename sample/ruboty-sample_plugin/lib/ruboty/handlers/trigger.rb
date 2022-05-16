@@ -71,6 +71,16 @@ module Ruboty
                 "action_id": "action_more"
               },
               {
+              "type": "button",
+              "text": { "type": "plain_text", "text": "Update message" },
+              "action_id": "action_update_message"
+              },
+              {
+                "type": "button",
+                "text": { "type": "plain_text", "text": "Update block" },
+                "action_id": "action_update_block"
+              },
+              {
                 "type": "button",
                 "text": { "type": "plain_text", "text": "More message (ephemeral)" },
                 "action_id": "action_more_ephemeral"
