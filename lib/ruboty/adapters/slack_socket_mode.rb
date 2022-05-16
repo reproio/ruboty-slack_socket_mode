@@ -77,16 +77,20 @@ module Ruboty
         client.reactions_add(name: reaction, channel: channel_id, timestamp: timestamp)
       end
 
-      def delete_ephemeral_message(response_url)
-        uri = URI.parse(response_url)
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = uri.scheme === "https"
+      def delete_interactive(response_url)
         params = { delete_original: "true" }
-        headers = { "Content-Type" => "application/json" }
-        http.post(uri.path, params.to_json, headers)
+        post_as_json(response_url, params)
       end
 
       private
+
+      def post_as_json(url, params)
+        uri = URI.parse(url)
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = uri.scheme === "https"
+        headers = { "Content-Type" => "application/json" }
+        http.post(uri.path, params.to_json, headers)
+      end
 
       def init
         response = client.auth_test

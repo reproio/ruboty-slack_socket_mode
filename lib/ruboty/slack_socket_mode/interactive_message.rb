@@ -33,16 +33,18 @@ module Ruboty
         robot.say(attributes)
       end
 
-      def reply_ephemeral(body, options = {})
+      def reply_as_ephemeral(body, options = {})
         reply(body, options.merge(ephemeral: true, user_id: user_id))
       end
 
       def delete
-        unless payload['response_url']
-          Ruboty.logger.warn("#{self.class.name}: Cannot delete message. This is not an ephemeral message.")
+        response_url = payload['response_url']
+        unless response_url
+          Ruboty.logger.warn("#{self.class.name}: Cannot delete message. This message does not contain response_url in payload.")
           return
         end
-        @robot.delete_ephemeral_message(payload['response_url'])
+
+        robot.delete_interactive(response_url)
       end
     end
   end

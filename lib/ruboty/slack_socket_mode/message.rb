@@ -13,7 +13,7 @@ module Ruboty
         @original.dig(:user, "id")
       end
 
-      def reply_ephemeral(body, options = {})
+      def reply_as_ephemeral(body, options = {})
         reply(body, options.merge(ephemeral: true, user_id: user_id))
       end
 

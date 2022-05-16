@@ -5,14 +5,11 @@ module Ruboty
     module Robot
       include Mem
       delegate :add_reaction, to: :adapter
+      delegate :delete_interactive, to: :adapter
 
       def add_reaction(reaction, channel_id, timestamp)
         adapter.add_reaction(reaction, channel_id, timestamp)
         true
-      end
-
-      def delete_ephemeral_message(response_url)
-        adapter.delete_ephemeral_message(response_url)
       end
 
       def receive_events_api(event_type, data)
