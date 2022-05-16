@@ -118,7 +118,7 @@ module Ruboty
             # auto reconnecting works if SLACK_AUTO_RECONNECT configured.
           when 'events_api'
             event = data.dig('payload', 'event')
-            handle_events_api(data['payload']['event'])
+            handle_events_api(event)
 
             method_name = :"on_#{event['type']}"
             send(method_name, event) if respond_to?(method_name, true)

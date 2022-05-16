@@ -15,11 +15,6 @@ module Ruboty
           []
         end
         memoize :interactive
-
-        def slash_commands
-          []
-        end
-        memoize :slash_commands
       end
     end
   end

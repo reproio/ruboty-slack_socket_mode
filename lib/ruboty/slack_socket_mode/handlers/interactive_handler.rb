@@ -1,16 +1,8 @@
-require "ostruct"
+require 'ruboty/slack_socket_mode/interactive_command'
 
 module Ruboty
   module SlackSocketMode
     module Handlers
-      class InteractiveAction
-        attr_reader :action_id, :method_name
-
-        def initialize(action_id, method_name)
-          @action_id = action_id
-          @method_name = method_name
-        end
-      end
 
       class InteractiveHandler
         class << self
@@ -21,13 +13,13 @@ module Ruboty
           end
 
           def on_interactive(action_id:, name:)
-            actions << InteractiveAction.new(action_id, name)
+            commands << Ruboty::SlackSocketMode::InteractiveCommand.new(action_id, name)
           end
 
-          def actions
+          def commands
             []
           end
-          memoize :actions
+          memoize :commands
         end
 
         attr_reader :robot

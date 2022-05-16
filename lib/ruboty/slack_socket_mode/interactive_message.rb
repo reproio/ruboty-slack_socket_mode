@@ -12,15 +12,15 @@ module Ruboty
       end
 
       def from
-        payload.dig("channel", "id")
+        @payload.dig("channel", "id")
       end
 
       def from_name
-        payload.dig("user", "name")
+        @payload.dig("user", "name")
       end
 
       def user_id
-        payload.dig("user", "id")
+        @payload.dig("user", "id")
       end
 
       def reply(body, options = {})
@@ -29,7 +29,7 @@ module Ruboty
           return
         end
 
-        attributes = { body: body, to: from, original: payload }.merge(options)
+        attributes = { body: body, to: from, original: @payload }.merge(options)
         robot.say(attributes)
       end
 
@@ -38,7 +38,7 @@ module Ruboty
       end
 
       def delete
-        response_url = payload['response_url']
+        response_url = @payload['response_url']
         unless response_url
           Ruboty.logger.warn("#{self.class.name}: Cannot delete message. This message does not contain response_url in payload.")
           return

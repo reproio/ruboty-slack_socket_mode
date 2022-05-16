@@ -1,17 +1,8 @@
-require "ostruct"
+require 'ruboty/slack_socket_mode/events_api_command'
 
 module Ruboty
   module SlackSocketMode
     module Handlers
-      class EventsApiAction
-        attr_reader :event_type, :method_name
-
-        def initialize(event_type, method_name)
-          @event_type = event_type
-          @method_name = method_name
-        end
-      end
-
       class EventsApiHandler
         class << self
           include Mem
@@ -21,13 +12,13 @@ module Ruboty
           end
 
           def on_event(event_type:, name:)
-            actions << EventsApiAction.new(event_type, name)
+            commands << Ruboty::SlackSocketMode::EventsApiCommand.new(event_type, name)
           end
 
-          def actions
+          def commands
             []
           end
-          memoize :actions
+          memoize :commands
         end
 
         attr_reader :robot

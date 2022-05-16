@@ -14,16 +14,16 @@ module Ruboty
 
       def receive_events_api(event_type, data)
         events_api_handlers.each do |handler|
-          handler.class.actions.each do |action|
-            handler.send(action.method_name, data) if action.event_type == event_type
+          handler.class.commands.each do |command|
+            handler.send(command.method_name, data) if command.event_type == event_type
           end
         end
       end
 
       def receive_interactive(interactive_message)
         interactive_handlers.each do |handler|
-          handler.class.actions.each do |action|
-            handler.send(action.method_name, interactive_message) if action.action_id == interactive_message.action_id
+          handler.class.commands.each do |command|
+            handler.send(command.method_name, interactive_message) if command.action_id == interactive_message.action_id
           end
         end
       end
