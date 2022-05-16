@@ -27,6 +27,8 @@ module Ruboty
           when :text
             Ruboty.logger.debug("#{Client.name}: Received text message: #{message.data}")
             data = JSON.parse(message.data)
+            Ruboty.logger.debug("#{Client.name}: Received text message")
+            Ruboty.logger.debug(message.data)
 
             # ACK response for SocketMode
             # ref: https://api.slack.com/apis/connections/socket-implement#acknowledge

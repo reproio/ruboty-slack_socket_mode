@@ -2,8 +2,10 @@ require 'cgi'
 require 'time'
 require 'json'
 require 'slack'
-require 'ruboty/adapters/base'
 require 'faraday'
+
+require 'ruboty/adapters/base'
+require 'ruboty/slack_socket_mode/interactive_message'
 
 module Ruboty
   module Adapters
@@ -24,29 +26,15 @@ module Ruboty
 
       def say(message)
         channel = message[:to]
-        if channel[0] == '#'
-          channel = resolve_channel_id(channel[1..-1])
-        end
-
-        return unless channel
-
         args = {
-          as_user: true
+          as_user: true,
+          channel: channel
         }
         if message[:thread_ts] || (message[:original] && message[:original][:thread_ts])
           args.merge!(thread_ts: message[:thread_ts] || message[:original][:thread_ts])
         end
 
-        if message[:attachments] && !message[:attachments].empty?
-          args.merge!(
-            channel: channel,
-            text: message[:code] ? "```\n#{message[:body]}\n```" : message[:body],
-            parse: message[:parse] || 'full',
-            unfurl_links: true,
-            attachments: message[:attachments].to_json
-          )
-          client.chat_postMessage(args)
-        elsif message[:file]
+        if message[:file]
           path = message[:file][:path]
           args.merge!(
             channels: channel,
@@ -56,12 +44,31 @@ module Ruboty
             initial_comment: message[:body] || ''
           )
           client.files_upload(args)
+          return
+        end
+
+        if message[:attachments] && !message[:attachments].empty?
+          args.merge!(
+            text: message[:code] ? "```\n#{message[:body]}\n```" : message[:body],
+            parse: message[:parse] || 'full',
+            unfurl_links: true,
+            attachments: message[:attachments].to_json
+          )
+        elsif message[:blocks] && !message[:blocks].empty?
+          args.merge!(
+            blocks: message[:blocks],
+          )
         else
           args.merge!(
-            channel: channel,
             text: message[:code] ? "```\n#{message[:body]}\n```" : resolve_send_mention(message[:body]),
             mrkdwn: true
           )
+        end
+
+        if message[:ephemeral]
+          args.merge!(user: message[:user_id])
+          client.chat_postEphemeral(args)
+        else
           client.chat_postMessage(args)
         end
       end
@@ -70,7 +77,20 @@ module Ruboty
         client.reactions_add(name: reaction, channel: channel_id, timestamp: timestamp)
       end
 
+      def delete_interactive(response_url)
+        params = { delete_original: "true" }
+        post_as_json(response_url, params)
+      end
+
       private
+
+      def post_as_json(url, params)
+        uri = URI.parse(url)
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = uri.scheme === "https"
+        headers = { "Content-Type" => "application/json" }
+        http.post(uri.path, params.to_json, headers)
+      end
 
       def init
         response = client.auth_test
@@ -98,20 +118,27 @@ module Ruboty
             # auto reconnecting works if SLACK_AUTO_RECONNECT configured.
           when 'events_api'
             event = data.dig('payload', 'event')
+            handle_events_api(event)
+
             method_name = :"on_#{event['type']}"
-            if respond_to?(method_name, true)
-              send(method_name, event)
-            else
-              Ruboty.logger.warn("#{self.class.name}: Received unsupported events_api type: '#{event['type']}'.")
-            end
+            send(method_name, event) if respond_to?(method_name, true)
           when 'slash_commands'
             # TODO: add event handling for Slash commands
           when 'interactive'
-            # TODO: add event handling for Block Kit buttons
+            handle_interactive(data['payload'])
           else
             Ruboty.logger.warn("#{self.class.name}: Received unsupported data type: '#{data['type']}'.")
           end
         end
+      end
+
+      def handle_events_api(data)
+        robot.receive_events_api(data['type'], data)
+      end
+
+      def handle_interactive(data)
+        interactive_message = Ruboty::SlackSocketMode::InteractiveMessage.new(robot, data)
+        robot.receive_interactive(interactive_message)
       end
 
       def connect
@@ -394,6 +421,10 @@ module Ruboty
 
       def slack_auto_reconnect
         ENV['SLACK_AUTO_RECONNECT']
+      end
+
+      def ruboty_name
+        ENV['RUBOTY_NAME']
       end
     end
   end
