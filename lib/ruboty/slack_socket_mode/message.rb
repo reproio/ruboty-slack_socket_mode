@@ -16,10 +16,6 @@ module Ruboty
       def reply_as_ephemeral(body, options = {})
         reply(body, options.merge(ephemeral: true, user_id: user_id))
       end
-
-      def delete
-        robot.delete_ephemeral_message(@original[:data]["response_url"])
-      end
     end
   end
 
