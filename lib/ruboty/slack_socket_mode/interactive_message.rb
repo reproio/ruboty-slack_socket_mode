@@ -70,11 +70,12 @@ module Ruboty
       end
 
       def selected_value(block_id, action_id)
-        unless @payload.dig('state', 'values', block_id, action_id, 'selected_option', 'value')
+        selected_value = @payload.dig('state', 'values', block_id, action_id, 'selected_option', 'value')
+        unless selected_value
           Ruboty.logger.warn("#{self.class.name}: Cannot get selected value. Block_id or action_id is not found")
           return
         end
-        return @payload.dig('state', 'values', block_id, action_id, 'selected_option', 'value')
+        return selected_value
       end
     end
   end
