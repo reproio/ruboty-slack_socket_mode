@@ -58,6 +58,49 @@ module Ruboty
             "text": { "type": "plain_text", "text": "Push any buttons" }
           },
           {
+            "type": "section",
+            "block_id": "select",
+            "text": {
+              "type": "mrkdwn",
+              "text": "please select"
+            },
+            "accessory": {
+              "type": "static_select",
+              "placeholder": {
+                "type": "plain_text",
+                "text": "Select an item",
+                "emoji": true
+              },
+              "options": [
+                {
+                  "text": {
+                    "type": "plain_text",
+                    "text": "item-1",
+                    "emoji": true
+                  },
+                  "value": "item-1"
+                },
+                {
+                  "text": {
+                    "type": "plain_text",
+                    "text": "item-2",
+                    "emoji": true
+                  },
+                  "value": "item-2"
+                },
+                {
+                  "text": {
+                    "type": "plain_text",
+                    "text": "item-3",
+                    "emoji": true
+                  },
+                  "value": "item-3"
+                }
+              ],
+              "action_id": "action_select"
+            }
+          },
+          {
             "type": "actions",
             "elements": [
               {

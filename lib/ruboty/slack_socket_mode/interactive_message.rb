@@ -55,7 +55,7 @@ module Ruboty
         end
 
         if text.nil? && block.nil? || text && block
-          Ruboty.logger.warn("#{self.class.name}: Cannot update message. This message does not contain response_url in payload.")
+          Ruboty.logger.warn("#{self.class.name}: Cannot update message. Wrong number of arguments (expected text or block)")
           return
         end
 
@@ -70,7 +70,11 @@ module Ruboty
       end
 
       def selected_value(block_id, action_id)
-        @payload.dig('state', 'values', block_id, action_id, 'selected_option', 'value')
+        unless @payload.dig('state', 'values', block_id, action_id, 'selected_option', 'value')
+          Ruboty.logger.warn("#{self.class.name}: Cannot get selected value. Block_id or action_id is not found")
+          return
+        end
+        return @payload.dig('state', 'values', block_id, action_id, 'selected_option', 'value')
       end
     end
   end

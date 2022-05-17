@@ -1,6 +1,10 @@
 module Ruboty::SlackSocketMode::Handlers
   class Interactive < InteractiveHandler
     on_interactive(
+      action_id: 'action_select',
+      name: 'select'
+    )
+    on_interactive(
       action_id: 'action_delete',
       name: 'delete'
     )
@@ -20,6 +24,10 @@ module Ruboty::SlackSocketMode::Handlers
       action_id: 'action_more_ephemeral',
       name: 'more_ephemeral'
     )
+
+    def select(message)
+      message.reply(message.selected_value("select","action_select"))
+    end
 
     def delete(message)
       message.delete
@@ -46,7 +54,7 @@ module Ruboty::SlackSocketMode::Handlers
       [
         {
           "type": "section",
-          "text": { "type": "plain_text", "text": "Push any buttons (updated)" }
+          "text": { "type": "plain_text", "text": "Update! Push Delete button" }
         },
         {
           "type": "actions",
@@ -55,26 +63,6 @@ module Ruboty::SlackSocketMode::Handlers
               "type": "button",
               "text": { "type": "plain_text", "text": "Delete" },
               "action_id": "action_delete"
-            },
-            {
-              "type": "button",
-              "text": { "type": "plain_text", "text": "More message" },
-              "action_id": "action_more"
-            },
-            {
-              "type": "button",
-              "text": { "type": "plain_text", "text": "Update message" },
-              "action_id": "action_update_messagee"
-            },
-            {
-              "type": "button",
-              "text": { "type": "plain_text", "text": "Update block" },
-              "action_id": "action_update_block"
-            },
-            {
-              "type": "button",
-              "text": { "type": "plain_text", "text": "More message (ephemeral)" },
-              "action_id": "action_more_ephemeral"
             }
           ]
         }
