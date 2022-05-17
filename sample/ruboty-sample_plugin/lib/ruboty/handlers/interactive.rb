@@ -9,16 +9,16 @@ module Ruboty::SlackSocketMode::Handlers
       name: 'delete'
     )
     on_interactive(
-      action_id: 'action_more',
-      name: 'more'
-    )
-    on_interactive(
       action_id: 'action_update_message',
       name: 'update_message'
     )
     on_interactive(
       action_id: 'action_update_block',
       name: 'update_block'
+    )
+    on_interactive(
+      action_id: 'action_more',
+      name: 'more'
     )
     on_interactive(
       action_id: 'action_more_ephemeral',
@@ -33,16 +33,16 @@ module Ruboty::SlackSocketMode::Handlers
       message.delete
     end
 
-    def more(message)
-      message.reply("Hello, #{message.from_name}!")
-    end
-
     def update_message(message)
       message.update(text: "Update!")
     end
 
     def update_block(message)
       message.update(block: interactive_blocks)
+    end
+
+    def more(message)
+      message.reply("Hello, #{message.from_name}!")
     end
 
     def more_ephemeral(message)

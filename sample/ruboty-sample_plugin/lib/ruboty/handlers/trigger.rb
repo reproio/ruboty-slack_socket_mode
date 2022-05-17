@@ -109,11 +109,6 @@ module Ruboty
                 "action_id": "action_delete"
               },
               {
-                "type": "button",
-                "text": { "type": "plain_text", "text": "More message" },
-                "action_id": "action_more"
-              },
-              {
               "type": "button",
               "text": { "type": "plain_text", "text": "Update message" },
               "action_id": "action_update_message"
@@ -122,6 +117,11 @@ module Ruboty
                 "type": "button",
                 "text": { "type": "plain_text", "text": "Update block" },
                 "action_id": "action_update_block"
+              },
+              {
+                "type": "button",
+                "text": { "type": "plain_text", "text": "More message" },
+                "action_id": "action_more"
               },
               {
                 "type": "button",
