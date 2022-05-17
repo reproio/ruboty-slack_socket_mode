@@ -47,26 +47,13 @@ module Ruboty
         robot.delete_interactive(response_url)
       end
 
-      def update(text: nil, block: nil)
+      def update(text: nil, blocks: nil)
         response_url = @payload['response_url']
         unless response_url
           Ruboty.logger.warn("#{self.class.name}: Cannot update message. This message does not contain response_url in payload.")
           return
         end
-
-        if text.nil? && block.nil? || text && block
-          Ruboty.logger.warn("#{self.class.name}: Cannot update message. Wrong number of arguments (expected text or block)")
-          return
-        end
-
-        if text.is_a?(String)
-          robot.update_interactive_message(response_url, text)
-        elsif block.is_a?(Array)
-          robot.update_interactive_block(response_url, block)
-        else
-          Ruboty.logger.warn("#{self.class.name}: Cannot update message. This is not match argument type.")
-          return
-        end
+        robot.update_interactive(response_url, text, blocks)
       end
 
       def selected_value(block_id, action_id)

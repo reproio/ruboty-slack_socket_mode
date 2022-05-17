@@ -38,7 +38,7 @@ module Ruboty::SlackSocketMode::Handlers
     end
 
     def update_block(message)
-      message.update(block: interactive_blocks)
+      message.update(blocks: interactive_blocks)
     end
 
     def more(message)
