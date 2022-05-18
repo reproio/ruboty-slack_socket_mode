@@ -56,13 +56,26 @@ module Ruboty
         robot.update_interactive(response_url, text, blocks)
       end
 
-      def selected_value(block_id, action_id)
-        selected_value = @payload.dig('state', 'values', block_id, action_id, 'selected_option', 'value')
-        unless selected_value
-          Ruboty.logger.warn("#{self.class.name}: Cannot get selected value. Block_id or action_id is not found")
+      def state(block_id:, action_id:)
+        state = @payload.dig('state', 'values', block_id, action_id)
+        unless state
+          Ruboty.logger.warn("#{self.class.name}: Cannot get state. Block_id or action_id is not found")
           return
         end
-        return selected_value
+        return case state['type']
+        when 'static_select' then state.dig('selected_option', 'value')
+        when 'multi_static_select' then state.dig('selected_options').map { |selected_option| selected_option['value'] }
+        when 'multi_conversations_select' then state.dig('selected_conversations')
+        when 'checkboxes' then state.dig('selected_options').map { |selected_option| selected_option['value'] }
+        when 'radio_buttons' then state.dig('selected_option', 'value')
+        when 'timepicker' then state.dig('selected_time')
+        when 'users_select' then state.dig('selected_user')
+        when 'multi_users_select' then state.dig('selected_users')
+        when 'datepicker' then state.dig('selected_date')
+        when 'plain_text_input' then state.dig('value')
+        else
+          Ruboty.logger.warn("#{self.class.name}: Cannot get state. This is unsupported type.")
+        end
       end
     end
   end
