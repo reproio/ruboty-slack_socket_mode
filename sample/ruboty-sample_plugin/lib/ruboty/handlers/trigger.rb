@@ -75,9 +75,9 @@ module Ruboty
                 "action_id": "action_delete"
               },
               {
-              "type": "button",
-              "text": { "type": "plain_text", "text": "Update message" },
-              "action_id": "action_update_message"
+                "type": "button",
+                "text": { "type": "plain_text", "text": "Update message" },
+                "action_id": "action_update_message"
               },
               {
                 "type": "button",

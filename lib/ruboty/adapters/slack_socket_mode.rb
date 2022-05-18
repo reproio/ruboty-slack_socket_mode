@@ -83,11 +83,6 @@ module Ruboty
       end
 
       def update_interactive(response_url, text, blocks)
-        if text.nil? && blocks.nil?
-          Ruboty.logger.warn("#{self.class.name}: Cannot update message. Wrong number of arguments (expected text or blocks)")
-          return
-        end
-      
         params = { replace_original: "true" }
         params[:text] = text if text
         params[:blocks] = blocks if blocks

@@ -53,6 +53,12 @@ module Ruboty
           Ruboty.logger.warn("#{self.class.name}: Cannot update message. This message does not contain response_url in payload.")
           return
         end
+
+        if text.nil? && blocks.nil?
+          Ruboty.logger.warn("#{self.class.name}: Cannot update message. Wrong number of arguments (expected text or blocks)")
+          return
+        end
+
         robot.update_interactive(response_url, text, blocks)
       end
 
@@ -62,6 +68,7 @@ module Ruboty
           Ruboty.logger.warn("#{self.class.name}: Cannot get state. Block_id or action_id is not found")
           return
         end
+
         return case state['type']
         when 'static_select' then state.dig('selected_option', 'value')
         when 'multi_static_select' then state.dig('selected_options').map { |selected_option| selected_option['value'] }
@@ -75,6 +82,7 @@ module Ruboty
         when 'plain_text_input' then state.dig('value')
         else
           Ruboty.logger.warn("#{self.class.name}: Cannot get state. This is unsupported type.")
+          return nil
         end
       end
     end
