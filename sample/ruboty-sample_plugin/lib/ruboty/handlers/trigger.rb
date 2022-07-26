@@ -47,15 +47,15 @@ module Ruboty
       end
 
       def reply_interactive(message)
-        message.reply('This is interactive message', blocks: interactive_blocks)
+        message.reply_blocks(interactive_blocks)
       end
 
       def reply_interactive_as_ephemeral(message)
-        message.reply_as_ephemeral('This is ephemeral interactive message', blocks: interactive_blocks)
+        message.reply_blocks_as_ephemeral(interactive_blocks)
       end
 
       def reply_interactive_form(message)
-        message.reply('This is interactive form', blocks: interactive_form)
+        message.reply_blocks(interactive_form)
       end
 
       private
@@ -81,18 +81,28 @@ module Ruboty
               },
               {
                 "type": "button",
-                "text": { "type": "plain_text", "text": "Update block" },
-                "action_id": "action_update_block"
+                "text": { "type": "plain_text", "text": "Update blocks" },
+                "action_id": "action_update_blocks"
               },
               {
                 "type": "button",
                 "text": { "type": "plain_text", "text": "More message" },
-                "action_id": "action_more"
+                "action_id": "action_more_message"
+              },
+              {
+                "type": "button",
+                "text": { "type": "plain_text", "text": "More blocks" },
+                "action_id": "action_more_blocks"
               },
               {
                 "type": "button",
                 "text": { "type": "plain_text", "text": "More message (ephemeral)" },
-                "action_id": "action_more_ephemeral"
+                "action_id": "action_more_ephemeral_message"
+              },
+              {
+                "type": "button",
+                "text": { "type": "plain_text", "text": "More blocks (ephemeral)" },
+                "action_id": "action_more_ephemeral_blocks"
               }
             ]
           }

@@ -13,16 +13,24 @@ module Ruboty::SlackSocketMode::Handlers
       name: 'update_message'
     )
     on_interactive(
-      action_id: 'action_update_block',
-      name: 'update_block'
+      action_id: 'action_update_blocks',
+      name: 'update_blocks'
     )
     on_interactive(
-      action_id: 'action_more',
-      name: 'more'
+      action_id: 'action_more_message',
+      name: 'more_message'
     )
     on_interactive(
-      action_id: 'action_more_ephemeral',
-      name: 'more_ephemeral'
+      action_id: 'action_more_blocks',
+      name: 'more_blocks'
+    )
+    on_interactive(
+      action_id: 'action_more_ephemeral_message',
+      name: 'more_ephemeral_message'
+    )
+    on_interactive(
+      action_id: 'action_more_ephemeral_blocks',
+      name: 'more_ephemeral_blocks'
     )
     def get_form(message)
       static_select = message.state(block_id: "static_select", action_id: "static_select-action")
@@ -59,24 +67,50 @@ module Ruboty::SlackSocketMode::Handlers
       message.update(text: "Update!")
     end
 
-    def update_block(message)
-      message.update(blocks: interactive_blocks)
+    def update_blocks(message)
+      message.update(blocks: update_sample_blocks)
     end
 
-    def more(message)
+    def more_message(message)
       message.reply("Hello, #{message.from_name}!")
     end
 
-    def more_ephemeral(message)
+    def more_blocks(message)
+      message.reply_blocks(reply_sample_blocks)
+    end
+
+    def more_ephemeral_message(message)
       message.reply_as_ephemeral("Hello, #{message.from_name}!")
     end
 
+    def more_ephemeral_blocks(message)
+      message.reply_blocks_as_ephemeral(reply_sample_blocks)
+    end
+
     private
-    def interactive_blocks
+    def update_sample_blocks
       [
         {
           "type": "section",
           "text": { "type": "plain_text", "text": "Update! Push Delete button" }
+        },
+        {
+          "type": "actions",
+          "elements": [
+            {
+              "type": "button",
+              "text": { "type": "plain_text", "text": "Delete" },
+              "action_id": "action_delete"
+            }
+          ]
+        }
+      ]
+    end
+    def reply_sample_blocks
+      [
+        {
+          "type": "section",
+          "text": { "type": "plain_text", "text": "More message! Push Delete button" }
         },
         {
           "type": "actions",

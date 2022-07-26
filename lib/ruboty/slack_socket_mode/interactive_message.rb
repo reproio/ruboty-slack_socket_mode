@@ -33,8 +33,16 @@ module Ruboty
         robot.say(attributes)
       end
 
+      def reply_blocks(blocks, options = {})
+        reply("", options.merge(blocks: blocks))
+      end
+
       def reply_as_ephemeral(body, options = {})
         reply(body, options.merge(ephemeral: true, user_id: user_id))
+      end
+
+      def reply_blocks_as_ephemeral(blocks, options = {})
+        reply("", options.merge(blocks: blocks, ephemeral: true, user_id: user_id))
       end
 
       def delete
