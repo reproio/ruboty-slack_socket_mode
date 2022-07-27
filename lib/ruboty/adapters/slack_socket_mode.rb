@@ -82,10 +82,13 @@ module Ruboty
         post_as_json(response_url, params)
       end
 
-      def update_interactive(response_url, text, blocks)
-        params = { replace_original: "true" }
-        params[:text] = text if text
-        params[:blocks] = blocks if blocks
+      def update_message(response_url, text)
+        params = { replace_original: "true", text: text }
+        post_as_json(response_url, params)
+      end
+
+      def update_blocks(response_url, blocks)
+        params = { replace_original: "true", blocks: blocks }
         post_as_json(response_url, params)
       end
 

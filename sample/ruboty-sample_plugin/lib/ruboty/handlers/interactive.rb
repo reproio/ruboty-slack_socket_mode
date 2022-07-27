@@ -64,11 +64,11 @@ module Ruboty::SlackSocketMode::Handlers
     end
 
     def update_message(message)
-      message.update(text: "Update!")
+      message.update_message("Update!")
     end
 
     def update_blocks(message)
-      message.update(blocks: update_sample_blocks)
+      message.update_blocks(update_sample_blocks)
     end
 
     def more_message(message)
