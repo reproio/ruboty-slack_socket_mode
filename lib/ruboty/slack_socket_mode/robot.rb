@@ -6,8 +6,7 @@ module Ruboty
       include Mem
       delegate :add_reaction, to: :adapter
       delegate :delete_interactive, to: :adapter
-      delegate :update, to: :adapter
-      delegate :update_blocks, to: :adapter
+      delegate :update_interactive, to: :adapter
 
       def add_reaction(reaction, channel_id, timestamp)
         adapter.add_reaction(reaction, channel_id, timestamp)

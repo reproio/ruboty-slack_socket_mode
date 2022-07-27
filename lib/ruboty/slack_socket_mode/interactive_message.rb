@@ -62,7 +62,7 @@ module Ruboty
           return
         end
 
-        robot.update(response_url, text)
+        robot.update_interactive(response_url, text, nil)
       end
 
       def update_blocks(blocks)
@@ -72,7 +72,7 @@ module Ruboty
           return
         end
 
-        robot.update_blocks(response_url, blocks)
+        robot.update_interactive(response_url, nil, blocks)
       end
 
       def state(block_id:, action_id:)
