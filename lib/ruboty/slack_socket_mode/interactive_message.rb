@@ -33,8 +33,16 @@ module Ruboty
         robot.say(attributes)
       end
 
+      def reply_blocks(blocks, options = {})
+        reply("", options.merge(blocks: blocks))
+      end
+
       def reply_as_ephemeral(body, options = {})
         reply(body, options.merge(ephemeral: true, user_id: user_id))
+      end
+
+      def reply_blocks_as_ephemeral(blocks, options = {})
+        reply("", options.merge(blocks: blocks, ephemeral: true, user_id: user_id))
       end
 
       def delete
@@ -47,25 +55,30 @@ module Ruboty
         robot.delete_interactive(response_url)
       end
 
-      def update(text: nil, blocks: nil)
+      def update(text)
         response_url = @payload['response_url']
         unless response_url
           Ruboty.logger.warn("#{self.class.name}: Cannot update message. This message does not contain response_url in payload.")
           return
         end
 
-        if text.nil? && blocks.nil?
-          Ruboty.logger.warn("#{self.class.name}: Cannot update message. Wrong number of arguments (expected text or blocks)")
+        robot.update_interactive(response_url, text, nil)
+      end
+
+      def update_blocks(blocks)
+        response_url = @payload['response_url']
+        unless response_url
+          Ruboty.logger.warn("#{self.class.name}: Cannot update blocks. This blocks does not contain response_url in payload.")
           return
         end
 
-        robot.update_interactive(response_url, text, blocks)
+        robot.update_interactive(response_url, nil, blocks)
       end
 
       def state(block_id:, action_id:)
         state = @payload.dig('state', 'values', block_id, action_id)
         unless state
-          Ruboty.logger.warn("#{self.class.name}: Cannot get state. Block_id or action_id is not found")
+          Ruboty.logger.warn("#{self.class.name}: Cannot get state. block_id: #{block_id} or action_id: #{action_id} is not found")
           return
         end
 
@@ -81,7 +94,7 @@ module Ruboty
         when 'datepicker' then state.dig('selected_date')
         when 'plain_text_input' then state.dig('value')
         else
-          Ruboty.logger.warn("#{self.class.name}: Cannot get state. This is unsupported type.")
+          Ruboty.logger.warn("#{self.class.name}: Cannot get state. This is unsupported type: #{state['type']}.")
           return nil
         end
       end
