@@ -55,20 +55,20 @@ module Ruboty
         robot.delete_interactive(response_url)
       end
 
-      def update_message(text)
+      def update(text)
         response_url = @payload['response_url']
         unless response_url
           Ruboty.logger.warn("#{self.class.name}: Cannot update message. This message does not contain response_url in payload.")
           return
         end
 
-        robot.update_message(response_url, text)
+        robot.update(response_url, text)
       end
 
       def update_blocks(blocks)
         response_url = @payload['response_url']
         unless response_url
-          Ruboty.logger.warn("#{self.class.name}: Cannot update message. This message does not contain response_url in payload.")
+          Ruboty.logger.warn("#{self.class.name}: Cannot update blocks. This blocks does not contain response_url in payload.")
           return
         end
 
@@ -78,7 +78,7 @@ module Ruboty
       def state(block_id:, action_id:)
         state = @payload.dig('state', 'values', block_id, action_id)
         unless state
-          Ruboty.logger.warn("#{self.class.name}: Cannot get state. Block_id or action_id is not found")
+          Ruboty.logger.warn("#{self.class.name}: Cannot get state. block_id: #{block_id} or action_id: #{action_id} is not found")
           return
         end
 
@@ -94,7 +94,7 @@ module Ruboty
         when 'datepicker' then state.dig('selected_date')
         when 'plain_text_input' then state.dig('value')
         else
-          Ruboty.logger.warn("#{self.class.name}: Cannot get state. This is unsupported type.")
+          Ruboty.logger.warn("#{self.class.name}: Cannot get state. This is unsupported type: #{state['type']}.")
           return nil
         end
       end

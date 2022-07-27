@@ -77,7 +77,7 @@ module Ruboty
               {
                 "type": "button",
                 "text": { "type": "plain_text", "text": "Update message" },
-                "action_id": "action_update_message"
+                "action_id": "action_update"
               },
               {
                 "type": "button",

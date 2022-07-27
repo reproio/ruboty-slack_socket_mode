@@ -82,7 +82,7 @@ module Ruboty
         post_as_json(response_url, params)
       end
 
-      def update_message(response_url, text)
+      def update(response_url, text)
         params = { replace_original: "true", text: text }
         post_as_json(response_url, params)
       end

@@ -9,8 +9,8 @@ module Ruboty::SlackSocketMode::Handlers
       name: 'delete'
     )
     on_interactive(
-      action_id: 'action_update_message',
-      name: 'update_message'
+      action_id: 'action_update',
+      name: 'update'
     )
     on_interactive(
       action_id: 'action_update_blocks',
@@ -63,8 +63,8 @@ module Ruboty::SlackSocketMode::Handlers
       message.delete
     end
 
-    def update_message(message)
-      message.update_message("Update!")
+    def update(message)
+      message.update("Update!")
     end
 
     def update_blocks(message)
