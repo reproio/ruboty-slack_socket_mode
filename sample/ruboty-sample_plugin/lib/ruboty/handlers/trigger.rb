@@ -47,7 +47,7 @@ module Ruboty
       end
 
       def reply_interactive(message)
-        message.reply_blocks(interactive_blocks)
+        message.reply('This is interactive message', blocks: interactive_blocks)
       end
 
       def reply_interactive_as_ephemeral(message)
