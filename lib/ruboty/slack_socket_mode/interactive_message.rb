@@ -76,9 +76,15 @@ module Ruboty
       end
 
       def state(block_id:, action_id:)
-        state = @payload.dig('state', 'values', block_id, action_id)
+        block = @payload.dig('state', 'values', block_id)
+        unless block
+          Ruboty.logger.warn("#{self.class.name}: Cannot get state. block_id: #{block_id} is not found")
+          return
+        end
+
+        state = block[action_id]
         unless state
-          Ruboty.logger.warn("#{self.class.name}: Cannot get state. block_id: #{block_id} or action_id: #{action_id} is not found")
+          Ruboty.logger.warn("#{self.class.name}: Cannot get state. action_id: #{action_id} is not found")
           return
         end
 
@@ -95,7 +101,7 @@ module Ruboty
         when 'plain_text_input' then state.dig('value')
         else
           Ruboty.logger.warn("#{self.class.name}: Cannot get state. This is unsupported type: #{state['type']}.")
-          return nil
+          return
         end
       end
     end
