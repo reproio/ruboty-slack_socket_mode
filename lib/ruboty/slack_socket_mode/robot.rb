@@ -8,11 +8,6 @@ module Ruboty
       delegate :delete_interactive, to: :adapter
       delegate :update_interactive, to: :adapter
 
-      def add_reaction(reaction, channel_id, timestamp)
-        adapter.add_reaction(reaction, channel_id, timestamp)
-        true
-      end
-
       def receive_events_api(event_type, data)
         events_api_handlers.each do |handler|
           handler.class.commands.each do |command|
