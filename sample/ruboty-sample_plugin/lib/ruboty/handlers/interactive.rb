@@ -32,6 +32,7 @@ module Ruboty::SlackSocketMode::Handlers
       action_id: 'action_more_ephemeral_blocks',
       name: 'more_ephemeral_blocks'
     )
+
     def get_form(message)
       static_select = message.state(block_id: "static_select", action_id: "static_select-action")
       multi_static_select = message.state(block_id: "multi_static_select", action_id: "multi_static_select-action")
@@ -88,6 +89,7 @@ module Ruboty::SlackSocketMode::Handlers
     end
 
     private
+
     def update_sample_blocks
       [
         {
@@ -106,6 +108,7 @@ module Ruboty::SlackSocketMode::Handlers
         }
       ]
     end
+
     def reply_sample_blocks
       [
         {

@@ -8,7 +8,7 @@ module Ruboty
       def initialize(robot, payload)
         @robot = robot
         @payload = payload
-        @action_id = payload['actions'].first['action_id']
+        @action_id = payload.dig('actions', 0, 'action_id')
       end
 
       def from
@@ -88,7 +88,7 @@ module Ruboty
           return
         end
 
-        return case state['type']
+        case state['type']
         when 'static_select' then state.dig('selected_option', 'value')
         when 'multi_static_select' then state.dig('selected_options').map { |selected_option| selected_option['value'] }
         when 'multi_conversations_select' then state.dig('selected_conversations')
@@ -101,7 +101,7 @@ module Ruboty
         when 'plain_text_input' then state.dig('value')
         else
           Ruboty.logger.warn("#{self.class.name}: Cannot get state. This is unsupported type: #{state['type']}.")
-          return
+          nil
         end
       end
     end

@@ -47,14 +47,14 @@ module Ruboty
           return
         end
 
-        if message[:attachments] && !message[:attachments].empty?
+        if !message.fetch(:attachments, []).empty?
           args.merge!(
             text: message[:code] ? "```\n#{message[:body]}\n```" : message[:body],
             parse: message[:parse] || 'full',
             unfurl_links: true,
             attachments: message[:attachments].to_json
           )
-        elsif message[:blocks] && !message[:blocks].empty?
+        elsif !message.fetch(:blocks, []).empty?
           args.merge!(
             blocks: message[:blocks],
           )
