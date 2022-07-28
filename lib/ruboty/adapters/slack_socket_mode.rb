@@ -92,11 +92,10 @@ module Ruboty
       private
 
       def post_as_json(url, params)
-        uri = URI.parse(url)
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = uri.scheme === "https"
-        headers = { "Content-Type" => "application/json" }
-        http.post(uri.path, params.to_json, headers)
+        Faraday.new(url).post do |connection|
+          connection.headers["Content-Type"] = "application/json"
+          connection.body = params.to_json
+        end
       end
 
       def init
