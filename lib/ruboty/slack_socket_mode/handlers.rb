@@ -7,7 +7,7 @@ module Ruboty
       @interactive = []
 
       class << self
-        attr_accessor :events_api, :interactive
+        attr_reader :events_api, :interactive
       end
     end
   end
