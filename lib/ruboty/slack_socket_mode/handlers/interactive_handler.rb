@@ -6,20 +6,16 @@ module Ruboty
 
       class InteractiveHandler
         class << self
-          include Mem
+          attr_reader :commands
 
           def inherited(child)
             Ruboty::SlackSocketMode::Handlers.interactive << child
           end
 
           def on_interactive(action_id:, name:)
-            commands << Ruboty::SlackSocketMode::InteractiveCommand.new(action_id, name)
+            @commands ||= []
+            @commands << Ruboty::SlackSocketMode::InteractiveCommand.new(action_id, name)
           end
-
-          def commands
-            []
-          end
-          memoize :commands
         end
 
         attr_reader :robot

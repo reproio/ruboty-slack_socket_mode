@@ -5,20 +5,16 @@ module Ruboty
     module Handlers
       class EventsApiHandler
         class << self
-          include Mem
+          attr_reader :commands
 
           def inherited(child)
             Ruboty::SlackSocketMode::Handlers.events_api << child
           end
 
           def on_event(event_type:, name:)
-            commands << Ruboty::SlackSocketMode::EventsApiCommand.new(event_type, name)
+            @commands ||= []
+            @commands << Ruboty::SlackSocketMode::EventsApiCommand.new(event_type, name)
           end
-
-          def commands
-            []
-          end
-          memoize :commands
         end
 
         attr_reader :robot

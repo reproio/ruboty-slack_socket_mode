@@ -3,18 +3,11 @@ require 'ruboty'
 module Ruboty
   module SlackSocketMode
     module Handlers
+      @events_api = []
+      @interactive = []
+
       class << self
-        include Mem
-
-        def events_api
-          []
-        end
-        memoize :events_api
-
-        def interactive
-          []
-        end
-        memoize :interactive
+        attr_accessor :events_api, :interactive
       end
     end
   end
