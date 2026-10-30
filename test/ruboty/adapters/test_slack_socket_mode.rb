@@ -158,4 +158,23 @@ class TestSlackSocketMode < Test::Unit::TestCase
       assert_equal 1, received_messages_for(message_from_other_bot).size
     end
   end
+
+  sub_test_case 'SLACK_IGNORE_SELF_MESSAGE=1 and SLACK_IGNORE_WEBHOOK_MESSAGE=1' do
+    setup do
+      ENV['SLACK_IGNORE_SELF_MESSAGE'] = '1'
+      ENV['SLACK_IGNORE_WEBHOOK_MESSAGE'] = '1'
+    end
+
+    test 'ignores messages from itself' do
+      assert_empty received_messages_for(message_from_self)
+    end
+
+    test 'ignores messages from incoming webhooks' do
+      assert_empty received_messages_for(message_from_webhook)
+    end
+
+    test 'receives messages from other apps posted with a bot user' do
+      assert_equal 1, received_messages_for(message_from_other_bot).size
+    end
+  end
 end
