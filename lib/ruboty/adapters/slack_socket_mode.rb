@@ -14,6 +14,8 @@ module Ruboty
       env :SLACK_BOT_TOKEN, "Slack OAuth token for using Web API."
       env :SLACK_EXPOSE_CHANNEL_NAME, "if this set to 1, message.to will be channel name instead of id", optional: true
       env :SLACK_IGNORE_BOT_MESSAGE, "If this set to 1, bot ignores bot_messages", optional: true
+      env :SLACK_IGNORE_SELF_MESSAGE, "If this set to 1, bot ignores messages posted by itself", optional: true
+      env :SLACK_IGNORE_WEBHOOK_MESSAGE, "If this set to 1, bot ignores messages that have bot_id but no user (e.g. incoming webhooks)", optional: true
       env :SLACK_IGNORE_GENERAL, "if this set to 1, bot ignores all messages on #general channel", optional: true
       env :SLACK_GENERAL_NAME, "Set general channel name if your Slack changes general name", optional: true
       env :SLACK_AUTO_RECONNECT, "Enable auto reconnect", optional: true
@@ -105,6 +107,7 @@ module Ruboty
         @usergroup_info_caches = {}
 
         ENV['RUBOTY_NAME'] ||= response['user']
+        @self_user_id = response['user_id']
 
         make_users_cache
         make_channels_cache
@@ -181,6 +184,9 @@ module Ruboty
 
       # event handlers
       def on_app_mention(data)
+        return if self_message?(data) && slack_ignore_self_message == '1'
+        return if webhook_message?(data) && slack_ignore_webhook_message == '1'
+
         user = user_info(data['user']) || {}
 
         channel = channel_info(data['channel'])
@@ -220,6 +226,18 @@ module Ruboty
       # alias for app mentions in direct message (It comes with `type: "message"`)
       # ref: https://api.slack.com/events/app_mention
       alias_method :on_message, :on_app_mention
+
+      # Compare only user, not bot_id, so that messages without user
+      # (e.g. incoming webhooks of the same app) are left to webhook_message?
+      def self_message?(data)
+        !data['user'].to_s.empty? && data['user'] == @self_user_id
+      end
+
+      # Messages posted via incoming webhooks have bot_id but no user.
+      # Other integrations that post without a user also match this.
+      def webhook_message?(data)
+        data['user'].to_s.empty? && !data['bot_id'].to_s.empty?
+      end
 
       def on_channel_change(data)
         make_channels_cache
@@ -415,6 +433,14 @@ module Ruboty
 
       def slack_ignore_bot_message
         ENV['SLACK_IGNORE_BOT_MESSAGE']
+      end
+
+      def slack_ignore_self_message
+        ENV['SLACK_IGNORE_SELF_MESSAGE']
+      end
+
+      def slack_ignore_webhook_message
+        ENV['SLACK_IGNORE_WEBHOOK_MESSAGE']
       end
 
       def slack_ignore_general
