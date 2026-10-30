@@ -184,8 +184,14 @@ module Ruboty
 
       # event handlers
       def on_app_mention(data)
-        return if self_message?(data) && slack_ignore_self_message == '1'
-        return if webhook_message?(data) && slack_ignore_webhook_message == '1'
+        reason = ignore_reason(data)
+        if reason
+          Ruboty.logger.info do
+            "#{self.class.name}: Ignored a message #{reason}: " \
+              "channel=#{data['channel']} ts=#{data['ts']} subtype=#{data['subtype']} bot_id=#{data['bot_id']}"
+          end
+          return
+        end
 
         user = user_info(data['user']) || {}
 
@@ -241,6 +247,11 @@ module Ruboty
       end
       alias_method :on_bot_added, :on_user_change
       alias_method :on_bot_changed, :on_user_change
+
+      def ignore_reason(data)
+        return 'posted by itself' if self_message?(data) && slack_ignore_self_message == '1'
+        return 'posted without a user (e.g. incoming webhook)' if webhook_message?(data) && slack_ignore_webhook_message == '1'
+      end
 
       # Compare only user, not bot_id, so that messages without user
       # (e.g. incoming webhooks of the same app) are left to webhook_message?

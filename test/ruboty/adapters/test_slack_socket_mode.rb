@@ -65,6 +65,10 @@ class TestSlackSocketMode < Test::Unit::TestCase
     ENV['SLACK_APP_TOKEN'] = 'xapp-dummy'
     ENV['SLACK_BOT_TOKEN'] = 'xoxb-dummy'
 
+    @original_logger = Ruboty.instance_variable_get(:@logger)
+    @log = StringIO.new
+    Ruboty.instance_variable_set(:@logger, Logger.new(@log))
+
     @robot = FakeRobot.new
     @adapter = Ruboty::Adapters::SlackSocketMode.new(@robot)
     @adapter.instance_variable_set(:@client, FakeClient.new)
@@ -74,6 +78,7 @@ class TestSlackSocketMode < Test::Unit::TestCase
   teardown do
     ENV_KEYS.each { |key| ENV.delete(key) }
     ENV.update(@original_env)
+    Ruboty.instance_variable_set(:@logger, @original_logger)
   end
 
   def message_from_self
@@ -109,6 +114,12 @@ class TestSlackSocketMode < Test::Unit::TestCase
     test 'receives messages from incoming webhooks' do
       assert_equal 1, received_messages_for(message_from_webhook).size
     end
+
+    test 'does not log anything about ignoring' do
+      received_messages_for(message_from_self)
+      received_messages_for(message_from_webhook)
+      assert_not_include @log.string, 'Ignored'
+    end
   end
 
   sub_test_case 'SLACK_IGNORE_SELF_MESSAGE=1' do
@@ -118,6 +129,13 @@ class TestSlackSocketMode < Test::Unit::TestCase
 
     test 'ignores messages posted by its own user' do
       assert_empty received_messages_for(message_from_self)
+    end
+
+    test 'logs ignored messages at info level' do
+      received_messages_for(message_from_self)
+      assert_include @log.string, 'INFO'
+      assert_include @log.string, 'Ignored a message posted by itself'
+      assert_include @log.string, "channel=#{BASE_MESSAGE['channel']} ts=#{BASE_MESSAGE['ts']}"
     end
 
     test 'receives messages from other users' do
@@ -140,6 +158,13 @@ class TestSlackSocketMode < Test::Unit::TestCase
 
     test 'ignores messages from incoming webhooks' do
       assert_empty received_messages_for(message_from_webhook)
+    end
+
+    test 'logs ignored messages at info level' do
+      received_messages_for(message_from_webhook)
+      assert_include @log.string, 'INFO'
+      assert_include @log.string, 'Ignored a message posted without a user'
+      assert_include @log.string, "subtype=bot_message bot_id=#{WEBHOOK_BOT_ID}"
     end
 
     test 'ignores messages from incoming webhooks of its own app' do

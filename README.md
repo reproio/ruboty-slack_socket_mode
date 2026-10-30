@@ -18,6 +18,8 @@ adapted new slack API(Socket Mode) instead of old API(RTM).
 - `SLACK_GENERAL_NAME`: Set general channel name if your Slack changes general name (optional)
 - `SLACK_AUTO_RECONNECT`: Enable auto reconnect if websocket disconnected by Slack (optional)
 
+Messages ignored by `SLACK_IGNORE_SELF_MESSAGE` or `SLACK_IGNORE_WEBHOOK_MESSAGE` are logged at info level without their text.
+
 ## Development
 
 To install this gem onto your local machine, run `bundle exec rake install`.
