@@ -13,7 +13,9 @@ module Ruboty
       env :SLACK_APP_TOKEN, "Slack App-Level token for Socket Mode."
       env :SLACK_BOT_TOKEN, "Slack OAuth token for using Web API."
       env :SLACK_EXPOSE_CHANNEL_NAME, "if this set to 1, message.to will be channel name instead of id", optional: true
-      env :SLACK_IGNORE_BOT_MESSAGE, "If this set to 1, bot ignores bot_messages", optional: true
+      env :SLACK_IGNORE_BOT_MESSAGE, "If this set to 1, bot ignores bot_messages and messages posted by bot users, including itself", optional: true
+      env :SLACK_IGNORE_SELF_MESSAGE, "If this set to 1, bot ignores messages posted by itself", optional: true
+      env :SLACK_IGNORE_WEBHOOK_MESSAGE, "If this set to 1, bot ignores messages that have bot_id but no user (e.g. incoming webhooks)", optional: true
       env :SLACK_IGNORE_GENERAL, "if this set to 1, bot ignores all messages on #general channel", optional: true
       env :SLACK_GENERAL_NAME, "Set general channel name if your Slack changes general name", optional: true
       env :SLACK_AUTO_RECONNECT, "Enable auto reconnect", optional: true
@@ -105,6 +107,7 @@ module Ruboty
         @usergroup_info_caches = {}
 
         ENV['RUBOTY_NAME'] ||= response['user']
+        @self_user_id = response['user_id']
 
         make_users_cache
         make_channels_cache
@@ -181,6 +184,15 @@ module Ruboty
 
       # event handlers
       def on_app_mention(data)
+        reason = ignore_reason(data)
+        if reason
+          Ruboty.logger.info do
+            "#{self.class.name}: Ignored a message #{reason}: " \
+              "channel=#{data['channel']} ts=#{data['ts']} subtype=#{data['subtype']} bot_id=#{data['bot_id']}"
+          end
+          return
+        end
+
         user = user_info(data['user']) || {}
 
         channel = channel_info(data['channel'])
@@ -235,6 +247,23 @@ module Ruboty
       end
       alias_method :on_bot_added, :on_user_change
       alias_method :on_bot_changed, :on_user_change
+
+      def ignore_reason(data)
+        return 'posted by itself' if self_message?(data) && slack_ignore_self_message == '1'
+        return 'posted without a user (e.g. incoming webhook)' if webhook_message?(data) && slack_ignore_webhook_message == '1'
+      end
+
+      # Compare only user, not bot_id, so that messages without user
+      # (e.g. incoming webhooks of the same app) are left to webhook_message?
+      def self_message?(data)
+        !data['user'].to_s.empty? && data['user'] == @self_user_id
+      end
+
+      # Messages posted via incoming webhooks have bot_id but no user.
+      # Other integrations that post without a user also match this.
+      def webhook_message?(data)
+        data['user'].to_s.empty? && !data['bot_id'].to_s.empty?
+      end
 
       def extract_mention(text)
         mention_to = []
@@ -415,6 +444,14 @@ module Ruboty
 
       def slack_ignore_bot_message
         ENV['SLACK_IGNORE_BOT_MESSAGE']
+      end
+
+      def slack_ignore_self_message
+        ENV['SLACK_IGNORE_SELF_MESSAGE']
+      end
+
+      def slack_ignore_webhook_message
+        ENV['SLACK_IGNORE_WEBHOOK_MESSAGE']
       end
 
       def slack_ignore_general

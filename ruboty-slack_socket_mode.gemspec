@@ -21,6 +21,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'rake'
   spec.add_development_dependency 'rubocop', '>= 0.28.0'
+  spec.add_development_dependency 'test-unit'
 
   spec.add_dependency 'ruboty', '>= 1.1.4'
   spec.add_dependency 'slack-ruby-client', '~> 1.0'

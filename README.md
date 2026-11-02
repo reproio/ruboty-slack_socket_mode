@@ -11,9 +11,14 @@ adapted new slack API(Socket Mode) instead of old API(RTM).
 - `SLACK_APP_TOKEN`: Slack App-Level token for Socket Mode. get one on https://api.slack.com/apis/connections/socket#token
 - `SLACK_BOT_TOKEN`: Slack OAuth token for using Web API. get one on https://api.slack.com/web#basics
 - `SLACK_EXPOSE_CHANNEL_NAME`: if this set to 1, `message.to` will be channel name instead of id (optional)
+- `SLACK_IGNORE_BOT_MESSAGE`: if this set to 1, bot ignores bot_messages and messages posted by bot users, including itself (optional)
+- `SLACK_IGNORE_SELF_MESSAGE`: if this set to 1, bot ignores messages posted by itself (optional)
+- `SLACK_IGNORE_WEBHOOK_MESSAGE`: if this set to 1, bot ignores messages that have bot_id but no user, such as messages posted via incoming webhooks or Workflow Builder (optional)
 - `SLACK_IGNORE_GENERAL`: if this set to 1, bot ignores all messages on #general channel (optional)
 - `SLACK_GENERAL_NAME`: Set general channel name if your Slack changes general name (optional)
 - `SLACK_AUTO_RECONNECT`: Enable auto reconnect if websocket disconnected by Slack (optional)
+
+Messages ignored by `SLACK_IGNORE_SELF_MESSAGE` or `SLACK_IGNORE_WEBHOOK_MESSAGE` are logged at info level without their text.
 
 ## Development
 
