@@ -20,9 +20,14 @@ module Ruboty
       env :SLACK_GENERAL_NAME, "Set general channel name if your Slack changes general name", optional: true
       env :SLACK_AUTO_RECONNECT, "Enable auto reconnect", optional: true
 
+      # A connection that ends sooner than this counts as a failed attempt
+      # and makes the next reconnect wait longer.
+      STABLE_CONNECTION_SECONDS = 60
+      MAX_RECONNECT_WAIT = 60
+
       def run
         init
-        bind
+        start_event_worker
         connect
       end
 
@@ -116,28 +121,52 @@ module Ruboty
 
       def bind
         socket.on_text do |data|
-          # We could not find whole event types in official document.
-          # This cases will cover all event types found in official sample data.
-          # ref: https://api.slack.com/apis/connections/socket-implement#events
-          case data['type']
-          when 'hello'
-            Ruboty.logger.info("#{self.class.name}: Socket Mode connection is established.")
-          when 'disconnect'
-            # Nothing to do
-            # auto reconnecting works if SLACK_AUTO_RECONNECT configured.
-          when 'events_api'
-            event = data.dig('payload', 'event')
-            handle_events_api(event)
+          # Handling a command can take tens of seconds. Hand it to the worker
+          # so the receiving thread keeps acking events and answering pings.
+          @event_queue.enq(data)
+        end
+      end
 
-            method_name = :"on_#{event['type']}"
-            send(method_name, event) if respond_to?(method_name, true)
-          when 'slash_commands'
-            # TODO: add event handling for Slash commands
-          when 'interactive'
-            handle_interactive(data['payload'])
-          else
-            Ruboty.logger.warn("#{self.class.name}: Received unsupported data type: '#{data['type']}'.")
+      # Events are handled one at a time in arrival order, as before; only the
+      # thread changes.
+      def start_event_worker
+        @event_queue = Queue.new
+        @event_worker = Thread.new do
+          loop do
+            data = @event_queue.deq
+            begin
+              dispatch_event(data)
+            rescue StandardError => e
+              Ruboty.logger.error("#{e.class}: #{e.message}\n#{Array(e.backtrace).join("\n")}")
+            end
           end
+        end
+        # Fail loudly instead of leaving a bot that is connected but deaf.
+        @event_worker.abort_on_exception = true
+      end
+
+      def dispatch_event(data)
+        # We could not find whole event types in official document.
+        # This cases will cover all event types found in official sample data.
+        # ref: https://api.slack.com/apis/connections/socket-implement#events
+        case data['type']
+        when 'hello'
+          Ruboty.logger.info("#{self.class.name}: Socket Mode connection is established.")
+        when 'disconnect'
+          # The socket client already started switching to a new connection.
+          Ruboty.logger.info("#{self.class.name}: Slack requested disconnect (reason=#{data['reason']}).")
+        when 'events_api'
+          event = data.dig('payload', 'event')
+          handle_events_api(event)
+
+          method_name = :"on_#{event['type']}"
+          send(method_name, event) if respond_to?(method_name, true)
+        when 'slash_commands'
+          # TODO: add event handling for Slash commands
+        when 'interactive'
+          handle_interactive(data['payload'])
+        else
+          Ruboty.logger.warn("#{self.class.name}: Received unsupported data type: '#{data['type']}'.")
         end
       end
 
@@ -151,27 +180,45 @@ module Ruboty
       end
 
       def connect
+        failures = 0
         loop do
-          socket.main_loop rescue nil
+          started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          begin
+            @socket = nil
+            bind
+            socket.main_loop
+            Ruboty.logger.warn("#{self.class.name}: Socket Mode connection ended: #{socket.disconnect_reason || 'unknown reason'}")
+          rescue StandardError => e
+            raise unless slack_auto_reconnect
+
+            Ruboty.logger.error("#{self.class.name}: Socket Mode connection failed: #{e.class}: #{e.message}")
+          end
           break unless slack_auto_reconnect
 
-          @url = nil
-          @socket = nil
-          bind
+          lived = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
+          failures = lived >= STABLE_CONNECTION_SECONDS ? 0 : failures + 1
+          wait = reconnect_wait(failures)
+          Ruboty.logger.info("#{self.class.name}: Reconnecting in #{wait} seconds.")
+          sleep(wait) if wait > 0
         end
       end
 
-      def url
-        @url ||= begin
-          response = Net::HTTP.post(
-            URI.parse('https://slack.com/api/apps.connections.open'), '',
-            { 'Authorization' => "Bearer #{slack_app_token}" }
-          )
-          body = JSON.parse(response.body)
-          raise response.body unless body['ok']
+      def reconnect_wait(failures)
+        return 0 if failures.zero?
 
-          URI.parse(body['url'])
-        end
+        [2**(failures - 1), MAX_RECONNECT_WAIT].min
+      end
+
+      # Socket Mode URLs are single-use, so every connection asks for a new one.
+      def url
+        response = Net::HTTP.post(
+          URI.parse('https://slack.com/api/apps.connections.open'), '',
+          { 'Authorization' => "Bearer #{slack_app_token}" }
+        )
+        body = JSON.parse(response.body)
+        raise "apps.connections.open failed: #{body['error']}" unless body['ok']
+
+        URI.parse(body['url'])
       end
 
       def client
@@ -179,7 +226,11 @@ module Ruboty
       end
 
       def socket
-        @socket ||= ::Ruboty::SlackSocketMode::Client.new(websocket_url: url)
+        @socket ||= ::Ruboty::SlackSocketMode::Client.new(websocket_url: url, **socket_options)
+      end
+
+      def socket_options
+        {}
       end
 
       # event handlers
