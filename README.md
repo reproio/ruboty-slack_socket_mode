@@ -16,7 +16,7 @@ adapted new slack API(Socket Mode) instead of old API(RTM).
 - `SLACK_IGNORE_WEBHOOK_MESSAGE`: if this set to 1, bot ignores messages that have bot_id but no user, such as messages posted via incoming webhooks or Workflow Builder (optional)
 - `SLACK_IGNORE_GENERAL`: if this set to 1, bot ignores all messages on #general channel (optional)
 - `SLACK_GENERAL_NAME`: Set general channel name if your Slack changes general name (optional)
-- `SLACK_AUTO_RECONNECT`: Enable auto reconnect if websocket disconnected by Slack (optional)
+- `SLACK_AUTO_RECONNECT`: Open a new Socket Mode connection when the current one is lost: closed, failed to write, reported an error, asked to disconnect by Slack, or nothing received for 90 seconds (optional)
 
 Messages ignored by `SLACK_IGNORE_SELF_MESSAGE` or `SLACK_IGNORE_WEBHOOK_MESSAGE` are logged at info level without their text.
 
