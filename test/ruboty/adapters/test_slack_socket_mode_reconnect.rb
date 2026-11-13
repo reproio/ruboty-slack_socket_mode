@@ -126,7 +126,7 @@ class TestSlackSocketModeReconnect < Test::Unit::TestCase
     Ruboty.instance_variable_set(:@logger, @original_logger)
   end
 
-  def start_adapter(robot: FakeRobot.new, url_failures: 0)
+  def start_adapter(robot: FakeRobot.new, url_failures: 0, idle_timeout: 0.5)
     @robot = robot
     @adapter = Ruboty::Adapters::SlackSocketMode.new(robot)
     @adapter.instance_variable_set(:@client, FakeWebClient.new)
@@ -140,7 +140,7 @@ class TestSlackSocketModeReconnect < Test::Unit::TestCase
       server.url
     end
     @adapter.define_singleton_method(:socket_options) do
-      { ping_interval: 0.1, idle_timeout: 0.5, watchdog_interval: 0.05 }
+      { ping_interval: 0.1, idle_timeout: idle_timeout, watchdog_interval: 0.05 }
     end
     @adapter.define_singleton_method(:reconnect_wait) { |_failures| 0.05 }
     @run_thread = Thread.new { @adapter.run }
@@ -167,7 +167,8 @@ class TestSlackSocketModeReconnect < Test::Unit::TestCase
   end
 
   test 'reconnects after the server drops the connection' do
-    start_adapter
+    # A long idle timeout makes sure the drop is noticed by the failing ping.
+    start_adapter(idle_timeout: 30)
     first = @server.next_connection
     assert_receives(first, 'before', 'env-1')
 
@@ -175,6 +176,7 @@ class TestSlackSocketModeReconnect < Test::Unit::TestCase
 
     second = @server.next_connection
     assert_receives(second, 'after', 'env-2')
+    assert_not_match(/nothing received/, @log.string)
   end
 
   test 'reconnects when the connection goes silent without an error' do

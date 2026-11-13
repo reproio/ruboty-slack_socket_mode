@@ -18,7 +18,6 @@ module Ruboty
                      watchdog_interval: WATCHDOG_INTERVAL, connect_timeout: CONNECT_TIMEOUT,
                      websocket_factory: nil)
         @queue = Queue.new
-        @write_lock = Mutex.new
         @state_lock = Mutex.new
         @ping_interval = ping_interval
         @idle_timeout = idle_timeout
@@ -28,15 +27,16 @@ module Ruboty
         touch
         factory = websocket_factory || method(:connect_websocket)
         # websocket-client-simple has no connect timeout of its own.
-        @client = Timeout.timeout(connect_timeout) { factory.call(websocket_url.to_s) }
-        register_connection_listeners
+        @client = Timeout.timeout(connect_timeout) do
+          factory.call(websocket_url.to_s) { |ws| register_connection_listeners(ws) }
+        end
       end
 
       attr_reader :disconnect_reason
 
       def send_message(data)
         data[:id] = (Time.now.to_i * 10 + rand(10)) % (1 << 31)
-        @queue.enq(data.to_json)
+        @queue.enq([data.to_json, :text])
       end
 
       def on_text(&block)
@@ -50,14 +50,20 @@ module Ruboty
 
       # Returns when the connection is lost or closed. The caller decides
       # whether to open a new connection.
+      #
+      # Every write happens on this thread. When a write fails with EPIPE or
+      # SSLError, websocket-client-simple closes the connection and kills its
+      # reader thread before emitting :close, so a write made on the reader
+      # thread would end that thread silently and nobody would notice.
       def main_loop
         watchdog = start_watchdog
 
         loop do
-          message = @queue.deq
-          break if message.equal?(CONNECTION_CLOSED)
+          item = @queue.deq
+          break if item.equal?(CONNECTION_CLOSED)
 
-          write(message)
+          data, type = item
+          write(data, type: type)
         end
       ensure
         watchdog&.kill
@@ -83,16 +89,17 @@ module Ruboty
 
       private
 
-      def connect_websocket(url)
-        WebSocket::Client::Simple.connect(url, verify_mode: OpenSSL::SSL::VERIFY_PEER)
+      def connect_websocket(url, &setup)
+        WebSocket::Client::Simple.connect(url, verify_mode: OpenSSL::SSL::VERIFY_PEER, &setup)
       end
 
-      def register_connection_listeners
+      # Called before the connection starts so no error or close is missed.
+      def register_connection_listeners(websocket)
         this = self
-        @client.on(:error) do |err|
+        websocket.on(:error) do |err|
           this.__send__(:on_connection_error, err)
         end
-        @client.on(:close) do |err|
+        websocket.on(:close) do |err|
           this.disconnect("connection closed#{err ? " (#{err.class}: #{err.message})" : ''}")
         end
       end
@@ -115,7 +122,7 @@ module Ruboty
         case message.type
         when :ping
           Ruboty.logger.debug("#{Client.name}: Received ping message")
-          write(message.data.to_s, type: :pong)
+          enqueue_write(message.data.to_s, :pong)
         when :pong
           Ruboty.logger.debug("#{Client.name}: Received pong message")
         when :close
@@ -126,7 +133,7 @@ module Ruboty
 
           # ACK response for SocketMode
           # ref: https://api.slack.com/apis/connections/socket-implement#acknowledge
-          write({ 'envelope_id' => data['envelope_id'] }.to_json) if data['envelope_id']
+          enqueue_write({ 'envelope_id' => data['envelope_id'] }.to_json, :text) if data['envelope_id']
 
           if data['type'] == 'disconnect'
             # Slack closes this connection shortly; switch before it does.
@@ -141,14 +148,27 @@ module Ruboty
         Ruboty.logger.error("#{e.class}: #{e.message}\n#{Array(e.backtrace).join("\n")}")
       end
 
+      def enqueue_write(data, type)
+        @queue.enq([data, type])
+      end
+
       def write(data, type: :text)
-        @write_lock.synchronize { @client.send(data, type: type) }
-        true
+        @client.send(data, type: type)
+        # send returns quietly once the library has closed the connection.
+        disconnect('websocket closed') if websocket_closed?
       rescue StandardError => e
         # websocket-client-simple only turns EPIPE and SSLError into a close
         # event; ECONNRESET and others are raised to the caller.
         disconnect("write failed (#{e.class}: #{e.message})")
-        false
+      end
+
+      def websocket_closed?
+        @client.respond_to?(:closed?) && @client.closed?
+      end
+
+      def reader_stopped?
+        reader = @client.respond_to?(:thread) ? @client.thread : nil
+        !reader.nil? && !reader.alive?
       end
 
       def touch
@@ -165,6 +185,11 @@ module Ruboty
           until disconnected?
             sleep(@watchdog_interval)
 
+            if websocket_closed? || reader_stopped?
+              disconnect('websocket closed or its reader thread stopped')
+              break
+            end
+
             idle = idle_seconds
             if idle > @idle_timeout
               disconnect(format('nothing received for %d seconds', idle))
@@ -174,7 +199,7 @@ module Ruboty
             now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
             if now - last_ping_at >= @ping_interval
               last_ping_at = now
-              write('', type: :ping)
+              enqueue_write('', :ping)
             end
           end
         rescue StandardError => e
@@ -193,9 +218,19 @@ module Ruboty
           # Writing the close frame fails on a reset connection, which leaves
           # the reader thread running; stop it directly.
           Ruboty.logger.debug("#{Client.name}: close failed: #{e.class}: #{e.message}")
+          close_raw_socket
         end
         reader = @client.respond_to?(:thread) ? @client.thread : nil
         reader.kill if reader&.alive? && reader != Thread.current
+      end
+
+      # The library stops before closing its socket when writing the close
+      # frame fails, which would leave the descriptor open until GC.
+      def close_raw_socket
+        raw = @client.instance_variable_get(:@socket)
+        raw&.close
+      rescue StandardError
+        nil
       end
     end
   end

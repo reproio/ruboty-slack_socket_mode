@@ -56,7 +56,10 @@ class TestSlackSocketModeClient < Test::Unit::TestCase
     defaults = { ping_interval: 60, idle_timeout: 60, watchdog_interval: 0.05 }
     client = Ruboty::SlackSocketMode::Client.new(
       websocket_url: 'wss://example.invalid/link',
-      websocket_factory: ->(_url) { @ws },
+      websocket_factory: lambda { |_url, &setup|
+        setup&.call(@ws)
+        @ws
+      },
       **defaults.merge(options)
     )
     client.on_text { |data| @received << data }
@@ -70,6 +73,16 @@ class TestSlackSocketModeClient < Test::Unit::TestCase
 
   def assert_main_loop_returns(thread, timeout: 3)
     assert_not_nil thread.join(timeout), 'main_loop did not return after the connection was lost'
+  end
+
+  def wait_until(timeout: 3)
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+    until yield
+      return false if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+
+      sleep 0.01
+    end
+    true
   end
 
   def text_frame(payload)
@@ -144,7 +157,7 @@ class TestSlackSocketModeClient < Test::Unit::TestCase
     @ws.emit :message, text_frame('type' => 'events_api', 'envelope_id' => 'env-1', 'payload' => {})
 
     assert_equal 'events_api', @received.pop['type']
-    assert_include @ws.sent, [:text, '{"envelope_id":"env-1"}']
+    assert_true wait_until { @ws.sent.include?([:text, '{"envelope_id":"env-1"}']) }
   ensure
     client&.disconnect('test finished')
     thread&.join(3)
@@ -170,6 +183,62 @@ class TestSlackSocketModeClient < Test::Unit::TestCase
 
     assert_main_loop_returns(thread)
     assert_not_nil @ws.thread.join(1), 'reader thread is still running'
+  end
+
+  test 'writes acks and pongs outside the thread that receives frames' do
+    client = build_client
+    writers = Queue.new
+    @ws.on_send = ->(_data, _type) { writers << Thread.current }
+    thread = run_main_loop(client)
+
+    receiver = Thread.new { @ws.emit :message, Frame.new(:ping, '') }
+    receiver.join
+
+    assert_equal thread, writers.pop
+  ensure
+    client&.disconnect('test finished')
+    thread&.join(3)
+  end
+
+  # With the real websocket-client-simple, a write failing with EPIPE closes
+  # the connection and kills the reader thread before :close is emitted.
+  test 'notices a write that fails with EPIPE in the real websocket client' do
+    broken_socket = Object.new
+    def broken_socket.write(_data) = raise(Errno::EPIPE)
+    def broken_socket.close; end
+
+    ws = WebSocket::Client::Simple::Client.new
+    {
+      handshaked: true, closed: false, pipe_broken: false,
+      handshake: Struct.new(:version).new(13), socket: broken_socket
+    }.each { |name, value| ws.instance_variable_set(:"@#{name}", value) }
+    start = Queue.new
+    reader = Thread.new do
+      start.pop
+      ws.emit(:message, Frame.new(:ping, ''))
+    end
+    ws.instance_variable_set(:@thread, reader)
+    ws.once(:__close) do |err|
+      close
+      emit :close, err
+    end
+
+    client = Ruboty::SlackSocketMode::Client.new(
+      websocket_url: 'wss://example.invalid/link',
+      websocket_factory: lambda { |_url, &setup|
+        setup&.call(ws)
+        ws
+      },
+      ping_interval: 60, idle_timeout: 60, watchdog_interval: 0.05
+    )
+    client.on_text { |_data| }
+    thread = run_main_loop(client)
+    start << true
+
+    assert_main_loop_returns(thread)
+    assert_match(/connection closed .*EPIPE/, client.disconnect_reason)
+  ensure
+    reader&.kill
   end
 
   test 'logs only the first error after the connection broke' do
